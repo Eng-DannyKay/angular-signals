@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -9,15 +9,53 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
- userStatus = signal('');
- goOnline() {
-  this.userStatus.set('online');
-}
-goOffline() {
-  this.userStatus.set('offline');
-}
+ userStatus = signal<'online' | 'away' | 'offline'>('offline');
+  notificationsEnabled = computed(() => this.userStatus()==='online');
 
-  toggleStatus(){
-    this.userStatus.update(curent => curent ==='online' ?'offline':'online')
+statusmessage = computed(()=>{
+  const status = this.userStatus();
+  switch(status){
+    case 'online':
+    return 'Available for meeting and messages';
+    case 'away':
+    return 'Temporarily away, will respond soon';
+    case 'offline':
+    return 'Not available, check back later';
+    default:
+    return 'Status unknown';
+  }
+});
+  isWithinWorkingHours = computed(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const isWeekday = now.getDay() > 0 && now.getDay() <6;
+    return isWeekday && hour >=9 && hour < 17 && this.userStatus() !== 'offline';
+  })
+
+  goOnline() {
+    this.userStatus.set('online');
+  }
+
+  goAway() {
+    this.userStatus.set('away');
+  }
+
+  goOffline() {
+    this.userStatus.set('offline');
+  }
+
+  toggleStatus() {
+    const current = this.userStatus();
+    switch (current) {
+      case 'offline':
+        this.userStatus.set('online');
+        break;
+      case 'online':
+        this.userStatus.set('away');
+        break;
+      case 'away':
+        this.userStatus.set('offline');
+        break;
+    }
   }
 }
